@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { getItem, setItem } from "./storage";
+import { getItem, setItem, lookupStock } from "./storage";
 import { Plus, Trash2, Bell, Globe, ChevronDown, ChevronUp } from "lucide-react";
 
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
@@ -407,21 +407,64 @@ function StockCard({ item, rate, onDelete, onEdit, portfolioTotalKRW }) {
 
 function EditForm({ draft, setDraft, onSave }) {
   const set = (k) => (e) => setDraft({ ...draft, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const [lookupStatus, setLookupStatus] = useState("idle"); // idle | loading | done | error
+  const [lookupMsg, setLookupMsg] = useState("");
+
+  const runLookup = async () => {
+    const query = (draft.ticker || draft.name || "").trim();
+    if (!query) {
+      setLookupStatus("error");
+      setLookupMsg("종목명이나 종목코드를 먼저 입력해주세요.");
+      return;
+    }
+    setLookupStatus("loading");
+    setLookupMsg("");
+    try {
+      const result = await lookupStock(draft.market, query);
+      setDraft((prev) => ({
+        ...prev,
+        name: prev.name || result.name,
+        ticker: result.ticker,
+        price: result.price ?? prev.price,
+        high: result.high ?? prev.high,
+        low: result.low ?? prev.low,
+      }));
+      setLookupStatus("done");
+      setLookupMsg(`불러옴: ${result.name} · 현재가 ${result.price ?? "-"}`);
+    } catch (e) {
+      setLookupStatus("error");
+      setLookupMsg(e.message || "조회에 실패했어요.");
+    }
+  };
+
   return (
     <div style={{ marginTop: 14 }}>
       <div style={sectionLabel}>기본 정보</div>
       <div style={grid2}>
-        <input placeholder="종목명" value={draft.name} onChange={set("name")} style={inputStyle} />
-        <input placeholder="종목코드/티커" value={draft.ticker} onChange={set("ticker")} style={inputStyle} />
+        <input placeholder="종목명 (예: 삼성전자)" value={draft.name} onChange={set("name")} style={inputStyle} />
+        <input placeholder="종목코드/티커 (예: 005930, AAPL)" value={draft.ticker} onChange={set("ticker")} style={inputStyle} />
         <select value={draft.market} onChange={set("market")} style={inputStyle}>
           <option value="KR">국내 (KRW)</option>
           <option value="US">해외 (USD)</option>
         </select>
+        <button
+          type="button"
+          onClick={runLookup}
+          disabled={lookupStatus === "loading"}
+          style={{ ...ghostBtn, justifyContent: "center", color: "#f5c56a", borderColor: "#5a4a24" }}
+        >
+          {lookupStatus === "loading" ? "조회 중..." : "자동 조회로 현재가·52주 채우기"}
+        </button>
         <input placeholder="현재가" value={draft.price} onChange={set("price")} style={inputStyle} />
         <input placeholder="52주 최고가" value={draft.high} onChange={set("high")} style={inputStyle} />
         <input placeholder="52주 최저가" value={draft.low} onChange={set("low")} style={inputStyle} />
         <input placeholder="알람 기준 % (기본 25)" value={draft.alertPct} onChange={set("alertPct")} style={inputStyle} />
       </div>
+      {lookupMsg && (
+        <div style={{ fontSize: 12, color: lookupStatus === "error" ? "#e0847a" : "#7fd99a", marginTop: -6, marginBottom: 12 }}>
+          {lookupMsg}
+        </div>
+      )}
 
       <div style={sectionLabel}>목표가 / 손절가 (선택)</div>
       <div style={grid2}>
