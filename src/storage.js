@@ -1,5 +1,5 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/여기에_배포_URL_붙여넣기/exec";
-const TOKEN = "여기에_직접_정한_토큰_문자열";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2UAnW6uI1rB_T78UK-OEXjWxXcBvx3kjHCPcMONZdSJ170WlQvsY0lBY5z10SaKe7/exec";
+const TOKEN = "첫마을-7979";
 
 export async function getItem(key) {
   const res = await fetch(`${APPS_SCRIPT_URL}?token=${encodeURIComponent(TOKEN)}`);
