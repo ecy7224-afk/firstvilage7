@@ -19,3 +19,13 @@ export async function setItem(key, value) {
   if (data.error) throw new Error(data.error);
   return { key, value };
 }
+// market: "KR" | "US", query: 종목명 또는 종목코드/티커
+export async function lookupStock(market, query) {
+  const url = `${APPS_SCRIPT_URL}?token=${encodeURIComponent(TOKEN)}&action=lookup&market=${encodeURIComponent(
+    market
+  )}&query=${encodeURIComponent(query)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.message || data.error);
+  return data;
+}
